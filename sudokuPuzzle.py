@@ -15,6 +15,7 @@ class App(QMainWindow):
         self.width = 1250
         self.height = 800
         self.initUI()
+        self.puzzle = sudokuPuzzle()
         
     def initUI(self):
         self.setWindowTitle(self.title)
@@ -38,19 +39,20 @@ class App(QMainWindow):
 
         checkButton = QPushButton('Check Solution', self)
         checkButton.move(1000, 550)
+        checkButton.clicked.connect(self.checkSolution)
 
         #enterButton = QPushButton("You should not see this", self)
         #enterButton.clicked.connect(self.enter)
 
-        l1 = [QTextEdit(self) for i in range(9)]
-        l2 = [QTextEdit(self) for i in range(9)]
-        l3 = [QTextEdit(self) for i in range(9)]
-        l4 = [QTextEdit(self) for i in range(9)]
-        l5 = [QTextEdit(self) for i in range(9)]
-        l6 = [QTextEdit(self) for i in range(9)]
-        l7 = [QTextEdit(self) for i in range(9)]
-        l8 = [QTextEdit(self) for i in range(9)]
-        l9 = [QTextEdit(self) for i in range(9)]
+        l1 = [QLineEdit(self) for i in range(9)]
+        l2 = [QLineEdit(self) for i in range(9)]
+        l3 = [QLineEdit(self) for i in range(9)]
+        l4 = [QLineEdit(self) for i in range(9)]
+        l5 = [QLineEdit(self) for i in range(9)]
+        l6 = [QLineEdit(self) for i in range(9)]
+        l7 = [QLineEdit(self) for i in range(9)]
+        l8 = [QLineEdit(self) for i in range(9)]
+        l9 = [QLineEdit(self) for i in range(9)]
 
         self.boxes =[l1, l2, l3, l4, l5, l6, l7, l8, l9]
 
@@ -62,7 +64,7 @@ class App(QMainWindow):
                 b.resize(60, 60)
                 xpos += 65
                 b.setFont(QFont('Arial', 10))
-                #b.returnPressed.connect(self.enter)
+                b.textChanged.connect(self.enter)
 
             ypos += 65
 
@@ -84,6 +86,11 @@ class App(QMainWindow):
         generateMenu.addAction(generateImpossibleDifficulty)
 
         generateVEasyDifficulty.triggered.connect(self.generateVEasyPuzzle)
+        generateEasyDifficulty.triggered.connect(self.generateEasyPuzzle)
+        generateMedDifficulty.triggered.connect(self.generateMedPuzzle)
+        generateHardDifficulty.triggered.connect(self.generateHardPuzzle)
+        generateVHardDifficulty.triggered.connect(self.generateVHardPuzzle)
+        generateImpossibleDifficulty.triggered.connect(self.generateImpossiblePuzzle)
 
         puzzleMenu.addMenu(generateMenu)
 
@@ -97,41 +104,87 @@ class App(QMainWindow):
     def setSquareValues(self):
         for row in self.boxes:
             for box in row:
-                text = box.toPlainText()
-                print(text)
-                if(text != ""):
+                text = box.text()
+                if(text != "" and len(text) == 1):
                     box.setAlignment(Qt.AlignCenter)
                     box.setFont(QFont('Arial', 20))
                     box.setEnabled(False)
-        
-
-    #@pyqtSlot()
-    def enter(self):
-        for row in self.boxes:
-            for box in row:
-                if(len(box.text()) == 1):
-                    box.setAlignment(Qt.AlignCenter)
-                    box.setFont(QFont('Arial', 20))
-                else:
-                    box.setAlignment(Qt.AlignRight)
-                    box.setFont(QFont('Arial', 8))
 
 
     def generateVEasyPuzzle(self):
-        puzzle = sudokuPuzzle()
-        puzzle.createPuzzle(5)
-        for row in puzzle.board:
-            for cell in row:
-                print(cell['val'])
-        self.loadPuzzle(puzzle)
+        self.puzzle = sudokuPuzzle()
+        self.puzzle.createPuzzle(5)
+        self.loadPuzzle(self.puzzle)
+
+    def generateEasyPuzzle(self):
+        self.puzzle = sudokuPuzzle()
+        self.puzzle.createPuzzle(4)
+        self.loadPuzzle(self.puzzle)
+    
+    def generateMedPuzzle(self):
+        self.puzzle = sudokuPuzzle()
+        self.puzzle.createPuzzle(3)
+        self.loadPuzzle(self.puzzle)
+    
+    def generateHardPuzzle(self):
+        self.puzzle = sudokuPuzzle()
+        self.puzzle.createPuzzle(2)
+        self.loadPuzzle(self.puzzle)
+
+    def generateVHardPuzzle(self):
+        self.puzzle = sudokuPuzzle()
+        self.puzzle.createPuzzle(1)
+        self.loadPuzzle(self.puzzle)
+
+    def generateImpossiblePuzzle(self):
+        self.puzzle = sudokuPuzzle()
+        self.puzzle.createPuzzle(0)
+        self.loadPuzzle(self.puzzle)
 
     def loadPuzzle(self, puzzle):
+        self.clearBoard()
         for i in range(9):
             for j in range(9):
                 if(puzzle.board[i][j]['val'] != ' '):
                     self.boxes[i][j].setText(str(puzzle.board[i][j]['val']))
         self.setSquareValues() 
+
+    def clearBoard(self):
+        for row in self.boxes:
+            for content in row:
+                content.setText("")
+                content.setEnabled(True)
         
+    def checkSolution(self):
+        numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+        finished = True
+        for i in range(9):
+            for j in range(9):
+                text = self.boxes[i][j].text()
+                if(text not in numbers):
+                    finished = False
+                else:
+                        self.puzzle.board[i][j]['val'] = int(text)
+        
+        if(finished):
+            if(self.puzzle.colCheck() and self.puzzle.rowCheck() and self.puzzle.sectorCheck()):
+                print("Valid solution")
+            else:
+                print("Incorrect solution")
+        else:
+            print("Your submission was invalid!")
+
+    def enter(self):
+        for row in self.boxes:
+            for box in row:
+                values = box.text()
+                if(len(values) > 0):
+                    box.setFont(QFont('Arial', 21-len(values)))
+                    box.setAlignment(Qt.AlignCenter)
+                else:
+                    box.setFont(QFont('Arial', 10))
+                    box.setAlignment(Qt.AlignLeft)
+
 
 
 

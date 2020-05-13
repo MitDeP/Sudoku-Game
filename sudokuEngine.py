@@ -44,7 +44,7 @@ class sudokuPuzzle():
                 if(value != " " and int(value) < 10 and int(value) > 0):
                     checkList[int(value)-1] += 1
 
-        if(checkList.count(1) != 9):
+        if(checkList.count(9) != 9):
             return not passed
         else:
             return passed
@@ -58,7 +58,7 @@ class sudokuPuzzle():
                 if(value != " " and int(value) < 10 and int(value) > 0):
                     checkList[int(value)-1] += 1
 
-        if(checkList.count(1) != 9):
+        if(checkList.count(9) != 9):
             return not passed
         else:
             return passed
