@@ -7,7 +7,7 @@ class sudokuPuzzle():
         self.board = None
         if(given is None):
             sudokuRow = ["" for i in range(9)]
-            self.boards = [copy.deepcopy(sudokuRow) for i in range(9)]
+            self.board = [copy.deepcopy(sudokuRow) for i in range(9)]
         else:
             self.board = given
         
@@ -272,7 +272,7 @@ class sudokuPuzzle():
                         x = previousGuess[1]
                         y = previousGuess[2]
                         self.board[x][y]['excluded'].add(value)
-                        self.board[x][y]['possble'].discard(value)
+                        self.board[x][y]['possible'].discard(value)
                         isPossible = self.possibleState()
                         progressMade = True
 
@@ -316,8 +316,7 @@ class sudokuPuzzle():
             for j in range(9):
                 puzzle[i][j]['possible'].clear()
 
-
-        return puzzle
+        self.board = puzzle
 
     def _designPuzzle(self):
         self.updatePossibles()

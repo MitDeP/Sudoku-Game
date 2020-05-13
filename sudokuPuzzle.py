@@ -1,7 +1,9 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QDialog, QMainWindow, QTextEdit, QAction
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QDialog, QMainWindow, QTextEdit, QAction, QMenu
 from PyQt5.QtGui import QIcon, QPainter, QFont, QPen
 from PyQt5.QtCore import pyqtSlot, Qt
+
+from sudokuEngine import *
 
 class App(QMainWindow):
 
@@ -17,15 +19,7 @@ class App(QMainWindow):
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-
-        menubar = self.menuBar()
-        puzzleMenu = menubar.addMenu('Puzzle')
-        generatePuzzle = puzzleMenu.addMenu('Generate')
-
-        generateEasyDifficulty = QAction('Easy', self)
-
-        puzzleMenu.addAction(generateEasyDifficulty)
-
+        
         self.setAutoFillBackground(True)
         pal = self.palette()
         pal.setColor(self.backgroundRole(), Qt.white)
@@ -73,6 +67,27 @@ class App(QMainWindow):
             ypos += 65
 
 
+        menubar = self.menuBar()
+        puzzleMenu = menubar.addMenu('Puzzle')
+        generateMenu = QMenu('Generate New', self)
+        generateVEasyDifficulty = QAction('Very Easy', self)
+        generateEasyDifficulty = QAction('Easy', self)
+        generateMedDifficulty = QAction('Medium', self)
+        generateHardDifficulty = QAction('Hard', self)
+        generateVHardDifficulty = QAction('Very Hard', self)
+        generateImpossibleDifficulty = QAction('Impossible', self)
+        generateMenu.addAction(generateVEasyDifficulty)
+        generateMenu.addAction(generateEasyDifficulty)
+        generateMenu.addAction(generateMedDifficulty)
+        generateMenu.addAction(generateHardDifficulty)
+        generateMenu.addAction(generateVHardDifficulty)
+        generateMenu.addAction(generateImpossibleDifficulty)
+
+        generateVEasyDifficulty.triggered.connect(self.generateVEasyPuzzle)
+
+        puzzleMenu.addMenu(generateMenu)
+
+
 
 
 
@@ -88,6 +103,7 @@ class App(QMainWindow):
                     box.setAlignment(Qt.AlignCenter)
                     box.setFont(QFont('Arial', 20))
                     box.setEnabled(False)
+        
 
     #@pyqtSlot()
     def enter(self):
@@ -99,6 +115,23 @@ class App(QMainWindow):
                 else:
                     box.setAlignment(Qt.AlignRight)
                     box.setFont(QFont('Arial', 8))
+
+
+    def generateVEasyPuzzle(self):
+        puzzle = sudokuPuzzle()
+        puzzle.createPuzzle(5)
+        for row in puzzle.board:
+            for cell in row:
+                print(cell['val'])
+        self.loadPuzzle(puzzle)
+
+    def loadPuzzle(self, puzzle):
+        for i in range(9):
+            for j in range(9):
+                if(puzzle.board[i][j]['val'] != ' '):
+                    self.boxes[i][j].setText(str(puzzle.board[i][j]['val']))
+        self.setSquareValues() 
+        
 
 
 
