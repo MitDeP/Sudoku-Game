@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QDialog, QMainWindow, QTextEdit
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QDialog, QMainWindow, QTextEdit, QAction
 from PyQt5.QtGui import QIcon, QPainter, QFont, QPen
 from PyQt5.QtCore import pyqtSlot, Qt
 
@@ -18,8 +18,13 @@ class App(QMainWindow):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
 
-        menu = self.menuBar()
-        puzzleMenu = menu.addMenu('Puzzle')
+        menubar = self.menuBar()
+        puzzleMenu = menubar.addMenu('Puzzle')
+        generatePuzzle = puzzleMenu.addMenu('Generate')
+
+        generateEasyDifficulty = QAction('Easy', self)
+
+        puzzleMenu.addAction(generateEasyDifficulty)
 
         self.setAutoFillBackground(True)
         pal = self.palette()
@@ -30,8 +35,15 @@ class App(QMainWindow):
         self.m.resize(self.width, self.height)
 
         setButton = QPushButton('Set', self)
-        setButton.move(500, 750)
+        setButton.move(1000, 450)
         setButton.clicked.connect(self.setSquareValues)
+
+        solveButton = QPushButton('Solve', self)
+        solveButton.move(1000,500)
+        
+
+        checkButton = QPushButton('Check Solution', self)
+        checkButton.move(1000, 550)
 
         #enterButton = QPushButton("You should not see this", self)
         #enterButton.clicked.connect(self.enter)
