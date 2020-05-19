@@ -1,9 +1,70 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QDialog, QMainWindow, QTextEdit, QAction, QMenu
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QDialog, QMainWindow, QTextEdit, QAction, QMenu, QMessageBox, QCheckBox, QLabel, QHBoxLayout
 from PyQt5.QtGui import QIcon, QPainter, QFont, QPen
 from PyQt5.QtCore import pyqtSlot, Qt
 
 from sudokuEngine import *
+
+
+class optionsMenu(QWidget):
+    def __init__(self, mainWindow):
+        super().__init__()
+        self.mainWindow = mainWindow
+        self.title = 'options'
+        self.left = 20
+        self.top = 20
+        self.width = 320
+        self.height = 400
+        self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
+        #self.setWindowFlag(Qt.Window.CloseButtonHint, False)
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.passiveChecking = True
+        self.activeChecking = True
+        self.instantSolve = False
+        self.cancelButton = QPushButton('Cancel', self)
+        self.saveChangesButton = QPushButton('Save Changes', self)
+        self.cancelButton.clicked.connect(self.exitClick)
+        self.saveChangesButton.clicked.connect(self.saveClick)
+        self.passiveCheckingBox = QCheckBox('Passive Checking', self)
+        self.activeCheckingBox = QCheckBox('Active Checking', self)
+
+        self.passiveCheckingBox.move(100, 100)
+        self.passiveCheckingBox.resize(180, 40)
+        self.activeCheckingBox.move(100, 200)
+        self.activeCheckingBox.resize(320, 40)
+        self.passiveCheckingBox.setChecked(self.passiveChecking)
+        self.activeCheckingBox.setChecked(self.activeChecking)
+        self.saveChangesButton.move(200, 300)
+        self.cancelButton.move(75, 300)
+
+
+    def saveClick(self):
+        if self.activeCheckingBox.isChecked():
+            self.activeChecking = True
+        else:
+            self.activeChecking = False
+
+        if self.passiveCheckingBox.isChecked():
+            self.passiveChecking = True
+        else:
+            self.passiveChecking = False
+
+        self.mainWindow.setEnabled(True)
+        self.close()
+
+
+
+    def exitClick(self):
+        self.close()
+        self.mainWindow.setEnabled(True)
+
+
+    
 
 class App(QMainWindow):
 
@@ -16,10 +77,14 @@ class App(QMainWindow):
         self.height = 800
         self.initUI()
         self.puzzle = sudokuPuzzle()
+        self.activeHints = True
+        self.passiveHints = True
         
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
+
+        self.optionsMenu = optionsMenu(self)
         
         self.setAutoFillBackground(True)
         pal = self.palette()
@@ -41,9 +106,6 @@ class App(QMainWindow):
         checkButton.move(1000, 550)
         checkButton.clicked.connect(self.checkSolution)
 
-        #enterButton = QPushButton("You should not see this", self)
-        #enterButton.clicked.connect(self.enter)
-
         l1 = [QLineEdit(self) for i in range(9)]
         l2 = [QLineEdit(self) for i in range(9)]
         l3 = [QLineEdit(self) for i in range(9)]
@@ -53,6 +115,7 @@ class App(QMainWindow):
         l7 = [QLineEdit(self) for i in range(9)]
         l8 = [QLineEdit(self) for i in range(9)]
         l9 = [QLineEdit(self) for i in range(9)]
+
 
         self.boxes =[l1, l2, l3, l4, l5, l6, l7, l8, l9]
 
@@ -65,25 +128,37 @@ class App(QMainWindow):
                 xpos += 65
                 b.setFont(QFont('Arial', 10))
                 b.textChanged.connect(self.enter)
+                b.textChanged.connect(self.setInputasValue)
+                b.textChanged.connect(self.passiveCheck)
 
             ypos += 65
 
 
         menubar = self.menuBar()
         puzzleMenu = menubar.addMenu('Puzzle')
+        optionMenu = menubar.addMenu('Options')
         generateMenu = QMenu('Generate New', self)
+        clear = QAction('Reset', self)
+        startOver = QAction('Clear Inputs', self)
         generateVEasyDifficulty = QAction('Very Easy', self)
         generateEasyDifficulty = QAction('Easy', self)
         generateMedDifficulty = QAction('Medium', self)
         generateHardDifficulty = QAction('Hard', self)
         generateVHardDifficulty = QAction('Very Hard', self)
         generateImpossibleDifficulty = QAction('Impossible', self)
+        solvePuzzle = QAction('Solve Puzzle', self)
+        openOptions = QAction('Hints', self)
+        puzzleMenu.addAction(solvePuzzle)
+        puzzleMenu.addAction(clear)
+        puzzleMenu.addAction(startOver)
+        optionMenu.addAction(openOptions)
         generateMenu.addAction(generateVEasyDifficulty)
         generateMenu.addAction(generateEasyDifficulty)
         generateMenu.addAction(generateMedDifficulty)
         generateMenu.addAction(generateHardDifficulty)
         generateMenu.addAction(generateVHardDifficulty)
         generateMenu.addAction(generateImpossibleDifficulty)
+        optionMenu.addAction(openOptions)
 
         generateVEasyDifficulty.triggered.connect(self.generateVEasyPuzzle)
         generateEasyDifficulty.triggered.connect(self.generateEasyPuzzle)
@@ -91,6 +166,11 @@ class App(QMainWindow):
         generateHardDifficulty.triggered.connect(self.generateHardPuzzle)
         generateVHardDifficulty.triggered.connect(self.generateVHardPuzzle)
         generateImpossibleDifficulty.triggered.connect(self.generateImpossiblePuzzle)
+        solvePuzzle.triggered.connect(self.solveCurrentPuzzle)
+        clear.triggered.connect(self.clearBoard)
+        startOver.triggered.connect(self.clearAnswers)
+
+        openOptions.triggered.connect(self.openOptions)
 
         puzzleMenu.addMenu(generateMenu)
 
@@ -109,7 +189,6 @@ class App(QMainWindow):
                     box.setAlignment(Qt.AlignCenter)
                     box.setFont(QFont('Arial', 20))
                     box.setEnabled(False)
-
 
     def generateVEasyPuzzle(self):
         self.puzzle = sudokuPuzzle()
@@ -155,8 +234,16 @@ class App(QMainWindow):
                 content.setText("")
                 content.setEnabled(True)
         
+    def clearAnswers(self):
+        for row in self.boxes:
+            for content in row:
+                if(content.isEnabled()):
+                    content.setText("")
+    
     def checkSolution(self):
         numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+        message = QMessageBox()
+        message.setStandardButtons(QMessageBox.Ok)
         finished = True
         for i in range(9):
             for j in range(9):
@@ -168,11 +255,14 @@ class App(QMainWindow):
         
         if(finished):
             if(self.puzzle.colCheck() and self.puzzle.rowCheck() and self.puzzle.sectorCheck()):
-                print("Valid solution")
-            else:
-                print("Incorrect solution")
+                message.setText('Your solution was correct! Congrats!')
+                message.exec_()
+            else: 
+                message.setText('Sorry, that solution is not correct.')
+                message.exec_()
         else:
-            print("Your submission was invalid!")
+            message.setText('The solution you submitted as invalid!\nLook through it to see what went wrong.')
+            message.exec_()
 
     def enter(self):
         for row in self.boxes:
@@ -185,7 +275,42 @@ class App(QMainWindow):
                     box.setFont(QFont('Arial', 10))
                     box.setAlignment(Qt.AlignLeft)
 
+    def openOptions(self):
+        self.optionsMenu.show()
+        self.setEnabled(False)
+    
+    def solveCurrentPuzzle(self):
+        self.puzzle.intelligentSolve()
+        for i in range(9):
+            for j in range(9):
+                self.boxes[i][j].setText(str(self.puzzle.board[i][j]['val']))
 
+    def passiveCheck(self):
+        for i in range(9):
+            for j in range(9):
+                isAllowed = self.puzzle.testRowConfliction(i, j)
+                if(not isAllowed[0]):
+                    self.highlight(isAllowed[1])
+
+    def highlight(self,wrong):
+        for coords in wrong:
+            print(coords)
+            cell = self.boxes[coords[0]][coords[1]]
+            cell.setStyleSheet('''
+            QLineEdit {
+        border: 2px solid rgb(63, 63, 63);
+        color: rgb(255, 255, 255);
+        background-color: rgb(100, 0, 0);
+        }
+''')
+
+    def setInputasValue(self):
+        for i in range(9):
+            for j in range(9):
+                cell = self.boxes[i][j]
+                ans = cell.text()
+                if(len(ans) == 1):
+                    self.puzzle.board[i][j]['val'] = int(ans)
 
 
 class PaintWidget(QWidget):

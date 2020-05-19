@@ -318,6 +318,23 @@ class sudokuPuzzle():
 
         self.board = puzzle
 
+    def testRowConfliction(self,x,y):
+        conflictions = []
+        for i in range(9):
+            if i != x and self.board[y][i]['val'] != ' ':
+                if(self.board[y][x]['val'] == self.board[y][i]['val']):
+                    conflictions.append([y,i])
+                    
+        return (len(conflictions) == 0, conflictions)
+
+
+    def testColConfliction(self,x,y):
+        pass
+
+    def testSectorConfliction(self,x,y):
+        pass
+
+
     def _designPuzzle(self):
         self.updatePossibles()
 
