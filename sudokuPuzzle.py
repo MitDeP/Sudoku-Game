@@ -30,8 +30,8 @@ class optionsMenu(QWidget):
         self.saveChangesButton = QPushButton('Save Changes', self)
         self.cancelButton.clicked.connect(self.exitClick)
         self.saveChangesButton.clicked.connect(self.saveClick)
-        self.passiveCheckingBox = QCheckBox('Passive Checking', self)
-        self.activeCheckingBox = QCheckBox('Active Checking', self)
+        self.passiveCheckingBox = QCheckBox('Check while solving', self)
+        self.activeCheckingBox = QCheckBox('Check at Submission Time', self)
 
         self.passiveCheckingBox.move(100, 100)
         self.passiveCheckingBox.resize(180, 40)
@@ -39,11 +39,19 @@ class optionsMenu(QWidget):
         self.activeCheckingBox.resize(320, 40)
         self.passiveCheckingBox.setChecked(self.passiveChecking)
         self.activeCheckingBox.setChecked(self.activeChecking)
-        self.saveChangesButton.move(200, 300)
-        self.cancelButton.move(75, 300)
+        self.saveChangesButton.move(75, 300)
+        self.cancelButton.move(200, 300)
+
+
+    def openMenu(self):
+        self.passiveCheckingBox.setChecked(self.passiveChecking)
+        self.activeCheckingBox.setChecked(self.activeChecking)
+        self.show()
+
 
 
     def saveClick(self):
+        self.mainWindow.setEnabled(True)
         if self.activeCheckingBox.isChecked():
             self.activeChecking = True
         else:
@@ -51,10 +59,11 @@ class optionsMenu(QWidget):
 
         if self.passiveCheckingBox.isChecked():
             self.passiveChecking = True
+            self.mainWindow.passiveCheck()
         else:
             self.passiveChecking = False
+            self.mainWindow.clearHighlights()
 
-        self.mainWindow.setEnabled(True)
         self.close()
 
 
@@ -81,6 +90,7 @@ class App(QMainWindow):
         self.passiveHints = True
         
     def initUI(self):
+        self.makingPuzzle = False
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
 
@@ -174,6 +184,8 @@ class App(QMainWindow):
 
         puzzleMenu.addMenu(generateMenu)
 
+        self.solving = False
+
 
 
 
@@ -221,12 +233,14 @@ class App(QMainWindow):
         self.loadPuzzle(self.puzzle)
 
     def loadPuzzle(self, puzzle):
+        self.makingPuzzle = True
         self.clearBoard()
         for i in range(9):
             for j in range(9):
                 if(puzzle.board[i][j]['val'] != ' '):
                     self.boxes[i][j].setText(str(puzzle.board[i][j]['val']))
-        self.setSquareValues() 
+        self.setSquareValues()
+        self.makingPuzzle = False
 
     def clearBoard(self):
         for row in self.boxes:
@@ -244,6 +258,7 @@ class App(QMainWindow):
         numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
         message = QMessageBox()
         message.setStandardButtons(QMessageBox.Ok)
+        message.buttonClicked.connect(self.clearHighlights)
         finished = True
         for i in range(9):
             for j in range(9):
@@ -252,6 +267,8 @@ class App(QMainWindow):
                     finished = False
                 else:
                         self.puzzle.board[i][j]['val'] = int(text)
+
+        self.activeCheck()
         
         if(finished):
             if(self.puzzle.colCheck() and self.puzzle.rowCheck() and self.puzzle.sectorCheck()):
@@ -276,41 +293,82 @@ class App(QMainWindow):
                     box.setAlignment(Qt.AlignLeft)
 
     def openOptions(self):
-        self.optionsMenu.show()
+        print(self.optionsMenu.title)
+        self.optionsMenu.openMenu()
         self.setEnabled(False)
     
     def solveCurrentPuzzle(self):
+        self.solving = True
         self.puzzle.intelligentSolve()
         for i in range(9):
             for j in range(9):
                 self.boxes[i][j].setText(str(self.puzzle.board[i][j]['val']))
+        self.solving = False
+
+    def clearHighlights(self):
+        for row in self.boxes:
+            for cell in row:
+                cell.setStyleSheet("")
 
     def passiveCheck(self):
-        for i in range(9):
-            for j in range(9):
-                isAllowed = self.puzzle.testRowConfliction(i, j)
-                if(not isAllowed[0]):
-                    self.highlight(isAllowed[1])
+        if(self.optionsMenu.passiveChecking):
+            remove = []
+            for i in range(9):
+                for j in range(9):
+                    remove += self.puzzle.findRowConfliction(i, j) + self.puzzle.findColConfliction(i, j) + self.puzzle.findSectorConfliction(i, j) 
+                    
+            for i in range(9):
+                for j in range(9):                 
+                    if([i,j] not in remove):
+                        cell = self.boxes[i][j]
+                        cell.setStyleSheet("")
+            self.highlight(remove)
+
+    def activeCheck(self):
+        if(self.optionsMenu.activeChecking and not self.optionsMenu.passiveChecking):
+            remove = []
+            for i in range(9):
+                for j in range(9):
+                    remove += self.puzzle.findRowConfliction(i, j) + self.puzzle.findColConfliction(i, j) + self.puzzle.findSectorConfliction(i, j) 
+                    
+            for i in range(9):
+                for j in range(9):                 
+                    if([i,j] not in remove):
+                        cell = self.boxes[i][j]
+                        cell.setStyleSheet("")
+            self.highlight(remove)
 
     def highlight(self,wrong):
         for coords in wrong:
-            print(coords)
             cell = self.boxes[coords[0]][coords[1]]
-            cell.setStyleSheet('''
-            QLineEdit {
-        border: 2px solid rgb(63, 63, 63);
-        color: rgb(255, 255, 255);
-        background-color: rgb(100, 0, 0);
-        }
-''')
+            if(cell.isEnabled()):
+                cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(255, 100, 100);
+            }
+    ''')
+            else:
+                cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(150, 0, 0);
+            }
+    ''')
 
     def setInputasValue(self):
-        for i in range(9):
-            for j in range(9):
-                cell = self.boxes[i][j]
-                ans = cell.text()
-                if(len(ans) == 1):
-                    self.puzzle.board[i][j]['val'] = int(ans)
+        numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+        if(not self.makingPuzzle and not self.solving):
+            for x in range(9):
+                for y in range(9):
+                    cell = self.boxes[x][y]
+                    ans = cell.text()
+                    if(ans in numbers):
+                        self.puzzle.board[x][y]['val'] = int(ans)
+                    else:
+                        self.puzzle.board[x][y]['val'] = ' '
 
 
 class PaintWidget(QWidget):

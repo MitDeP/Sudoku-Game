@@ -318,21 +318,69 @@ class sudokuPuzzle():
 
         self.board = puzzle
 
-    def testRowConfliction(self,x,y):
+    def findRowConfliction(self,x,y):
         conflictions = []
         for i in range(9):
             if i != x and self.board[y][i]['val'] != ' ':
                 if(self.board[y][x]['val'] == self.board[y][i]['val']):
                     conflictions.append([y,i])
-                    
-        return (len(conflictions) == 0, conflictions)
+            
+        if(len(conflictions) > 0):
+            conflictions.append([y,x])
+        return conflictions
 
 
-    def testColConfliction(self,x,y):
-        pass
+    def findColConfliction(self,x,y):
+        conflictions = []
+        for i in range(9):
+            if i != y and self.board[i][x]['val'] != ' ':
+                if(self.board[y][x]['val'] == self.board[i][x]['val']):
+                    conflictions.append([i,x])
+        return conflictions
 
-    def testSectorConfliction(self,x,y):
-        pass
+    def findSectorConfliction(self,x,y):
+        startX = 0
+        startY = 0
+
+        given = self.board[x][y]['val']
+
+
+        if(x < 3 and y < 3):
+            pass
+        elif(x < 6 and y < 3):
+            startX = 3
+        elif(x >= 6 and y < 3):
+            startX = 6
+        elif(x < 3 and y < 6):
+            startY = 3
+        elif(x < 6 and y < 6):
+            startX = 3
+            startY = 3
+        elif(x >= 6 and y < 6):
+            startX = 6
+            startY = 3
+        elif(x < 3 and y >= 6):
+            startY = 6
+        elif(x < 6 and y >= 6):
+            startX = 3
+            startY = 6
+        else:
+            startX = 6
+            startY = 6
+
+        conflictions = []
+        for i in range(startX, startX+3):
+            for j in range(startY, startY+3):
+                cell = self.board[i][j]
+                if(i == x and j == y):
+                    pass
+                else:
+                    if(cell['val'] == given and cell['val'] != ' '):
+                        conflictions.append([i,j])
+
+        return conflictions
+
+        
 
 
     def _designPuzzle(self):
