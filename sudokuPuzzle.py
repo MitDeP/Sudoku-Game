@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QDialog, QMainWindow, QTextEdit, QAction, QMenu, QMessageBox, QCheckBox, QLabel, QHBoxLayout
 from PyQt5.QtGui import QIcon, QPainter, QFont, QPen
-from PyQt5.QtCore import pyqtSlot, Qt
+from PyQt5.QtCore import pyqtSlot, Qt, QTimer
 
 from sudokuEngine import *
 
@@ -300,10 +300,28 @@ class App(QMainWindow):
     def solveCurrentPuzzle(self):
         self.solving = True
         self.puzzle.intelligentSolve()
-        for i in range(9):
-            for j in range(9):
-                self.boxes[i][j].setText(str(self.puzzle.board[i][j]['val']))
-        self.solving = False
+        if(self.optionsMenu.instantSolve):
+            for i in range(9):
+                for j in range(9):
+                    self.boxes[i][j].setText(str(self.puzzle.board[i][j]['val']))
+            self.solving = False
+        else:
+            timer = QTimer(self)
+            self.counter = 0
+            timer.timeout.connect(self.onTimeout)
+            timer.start(250)
+
+    def onTimeout(self):
+        if(self.counter >= len(self.puzzle.eventStack)):
+            self.sovling = False
+        else:
+            square = self.puzzle.eventStack[self.counter]
+            print(square)
+            if(square[0] == 'remove'):
+                self.boxes[square[2]][square[3]].setText(str(" "))
+            else:
+                self.boxes[square[2]][square[3]].setText(str(square[1]))
+            self.counter += 1
 
     def clearHighlights(self):
         for row in self.boxes:

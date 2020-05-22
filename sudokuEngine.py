@@ -12,6 +12,7 @@ class sudokuPuzzle():
             self.board = given
         
         self.board = self.initPuzzle(self.board)
+        self.eventStack = []
 
     def initPuzzle(self, board):
         baseCell = {
@@ -246,6 +247,7 @@ class sudokuPuzzle():
                             possibleExclusives = self.exclusiveRowSweep(j, i) & self.exclusiveColSweep(j, i) & self.exclusiveSectorSweep(j, i)
                             if(len(possibleExclusives) == 1):
                                 self.board[i][j]['val'] = possibleExclusives.pop()
+                                self.eventStack.append(['exclusive',self.board[i][j]['val'], i, j])
                                 self.board[i][j]['possible'].clear()
                                 progressMade = True
                 
@@ -263,6 +265,7 @@ class sudokuPuzzle():
                         self.board[x][y]['val'] = guess
                         gStack.append([guess, x, y])
                         self.board[x][y]['possible'].clear()
+                        self.eventStack.append(['guess', guess, x, y])
                         progressMade = True
 
                     elif(len(gStack) > 0):
@@ -271,6 +274,12 @@ class sudokuPuzzle():
                         value = previousGuess[0]
                         x = previousGuess[1]
                         y = previousGuess[2]
+                        self.eventStack.append(['bad guess', self.board[x][y]['val'], x, y])
+                        current = len(self.eventStack) - 1
+                        while(self.eventStack[current][0] != 'guess'):
+                            current -= 1
+                            wrongValue = self.eventStack[current]
+                            self.eventStack.append(['remove', wrongValue[1], wrongValue[2], wrongValue])
                         self.board[x][y]['excluded'].add(value)
                         self.board[x][y]['possible'].discard(value)
                         isPossible = self.possibleState()
@@ -279,6 +288,7 @@ class sudokuPuzzle():
                     else:
                         return False
                 else:
+                    print(len(self.eventStack))
                     return True
 
     def createPuzzle(self, difficulty):
@@ -329,7 +339,6 @@ class sudokuPuzzle():
             conflictions.append([y,x])
         return conflictions
 
-
     def findColConfliction(self,x,y):
         conflictions = []
         for i in range(9):
@@ -379,9 +388,6 @@ class sudokuPuzzle():
                         conflictions.append([i,j])
 
         return conflictions
-
-        
-
 
     def _designPuzzle(self):
         self.updatePossibles()
