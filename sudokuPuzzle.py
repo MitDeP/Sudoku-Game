@@ -306,22 +306,77 @@ class App(QMainWindow):
                     self.boxes[i][j].setText(str(self.puzzle.board[i][j]['val']))
             self.solving = False
         else:
-            timer = QTimer(self)
+            self.timer = QTimer(self)
             self.counter = 0
-            timer.timeout.connect(self.onTimeout)
-            timer.start(250)
+            self.timer.timeout.connect(self.onTimeout)
+            self.timer.start(400)
 
     def onTimeout(self):
         if(self.counter >= len(self.puzzle.eventStack)):
             self.sovling = False
+            self.clearHighlights()
+            self.timer.stop()
         else:
+            guessFlag = False
             square = self.puzzle.eventStack[self.counter]
             print(square)
             if(square[0] == 'remove'):
                 self.boxes[square[2]][square[3]].setText(str(" "))
-            else:
+                self.changeHighlights('red', square[2],square[3])
+            elif(square[0] == 'exclusive' and  not guessFlag):
                 self.boxes[square[2]][square[3]].setText(str(square[1]))
+                self.changeHighlights('green', square[2],square[3])
+            elif(square[0] == 'exclusive' and guessFlag):
+                self.boxes[square[2]][square[3]].setText(str(square[1]))
+                self.changeHighlights('yellow', square[2],square[3])
+            elif(square[0] == 'guess'):
+                self.guessFlag = True
+                self.boxes[square[2]][square[3]].setText(str(square[1]))
+                self.changeHighlights('orange', square[2],square[3])
+            elif(square[0] == 'bad guess'):
+                self.guessFlag = False
+                self.boxes[square[2]][square[3]].setText(str(square[1]))
+                self.changeHighlights('red', square[2],square[3])
             self.counter += 1
+
+    def changeHighlights(self, color, x, y):
+        cell = self.boxes[x][y]
+        if(color == 'clear'):
+            cell.setStyelSheet("")
+        elif(color == 'red'):
+            cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(255, 0, 0);
+            }
+                            ''')
+        elif(color == 'yellow'):
+            cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(255, 255, 0);
+            }
+                            ''')
+
+        elif(color == 'green'):
+            cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(0, 255, 0);
+            }
+                            ''')
+        elif(color == 'orange'):
+            cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(255, 165, 0);
+            }
+                            ''')
+        
 
     def clearHighlights(self):
         for row in self.boxes:
@@ -366,7 +421,7 @@ class App(QMainWindow):
             color: rgb(255, 255, 255);
             background-color: rgb(255, 100, 100);
             }
-    ''')
+                                ''')
             else:
                 cell.setStyleSheet('''
                 QLineEdit {
@@ -374,7 +429,7 @@ class App(QMainWindow):
             color: rgb(255, 255, 255);
             background-color: rgb(150, 0, 0);
             }
-    ''')
+                                ''')
 
     def setInputasValue(self):
         numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']

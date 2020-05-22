@@ -249,18 +249,18 @@ class sudokuPuzzle():
                                 self.board[i][j]['val'] = possibleExclusives.pop()
                                 self.eventStack.append(['exclusive',self.board[i][j]['val'], i, j])
                                 self.board[i][j]['possible'].clear()
-                                progressMade = True
-                
+                                progressMade = True             
                 isPossible = self.possibleState()
 
 
-                if(not self.completed()):
+                if(not self.completed() and not progressMade):
                     if(self.possibleState()):
                         info = self.findLeastDiverseUnsolvedCell()
                         buffer = copy.deepcopy(self.board)
                         previousStates.append(buffer)
                         x = info[0]
                         y = info[1]
+                        print("{0} guess".format((self.board[x][y]['possible'])))
                         guess = self.board[x][y]['possible'].pop()
                         self.board[x][y]['val'] = guess
                         gStack.append([guess, x, y])
@@ -276,10 +276,12 @@ class sudokuPuzzle():
                         y = previousGuess[2]
                         self.eventStack.append(['bad guess', self.board[x][y]['val'], x, y])
                         current = len(self.eventStack) - 1
+                        tempStack = []
                         while(self.eventStack[current][0] != 'guess'):
                             current -= 1
                             wrongValue = self.eventStack[current]
-                            self.eventStack.append(['remove', wrongValue[1], wrongValue[2], wrongValue])
+                            tempStack.append(['remove', wrongValue[1], wrongValue[2], wrongValue[3]])
+                        self.eventStack += tempStack
                         self.board[x][y]['excluded'].add(value)
                         self.board[x][y]['possible'].discard(value)
                         isPossible = self.possibleState()
@@ -287,7 +289,8 @@ class sudokuPuzzle():
 
                     else:
                         return False
-                else:
+                elif(self.completed()):
+                    print('done')
                     print(len(self.eventStack))
                     return True
 
