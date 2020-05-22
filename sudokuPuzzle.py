@@ -306,22 +306,69 @@ class App(QMainWindow):
                     self.boxes[i][j].setText(str(self.puzzle.board[i][j]['val']))
             self.solving = False
         else:
-            timer = QTimer(self)
+            self.timer = QTimer(self)
             self.counter = 0
-            timer.timeout.connect(self.onTimeout)
-            timer.start(250)
+            self.timer.timeout.connect(self.onTimeout)
+            self.timer.start(300)
 
     def onTimeout(self):
         if(self.counter >= len(self.puzzle.eventStack)):
             self.sovling = False
+            self.clearHighlights()
+            self.timer.stop()
         else:
             square = self.puzzle.eventStack[self.counter]
             print(square)
-            if(square[0] == 'remove'):
+            if(square[0] == 'remove' or square[0] == 'bad guess'):
                 self.boxes[square[2]][square[3]].setText(str(" "))
-            else:
+                self.changeHighlights('red', square[2], square[3])
+            elif(square[0] == 'exclusive'):
                 self.boxes[square[2]][square[3]].setText(str(square[1]))
+                self.changeHighlights('green', square[2], square[3])
+            elif(square[0] == 'guess'):
+                self.boxes[square[2]][square[3]].setText(str(square[1]))
+                self.changeHighlights('orange', square[2], square[3])
             self.counter += 1
+
+
+    def changeHighlights(self, color, x, y):
+        cell = self.boxes[x][y]
+        if(color == 'clear'):
+            cell.setStyleSheet("")
+        elif(color == 'red'):
+                cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(255, 0, 0);
+            }
+                            ''')
+        elif(color == 'yellow'):
+            cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(255, 255, 100);
+            }
+                            ''')
+        elif(color == 'orange'):
+            cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(255, 165, 0);
+            }
+                            ''')
+        elif(color == 'green'):
+            cell.setStyleSheet('''
+                QLineEdit {
+            border: 2px solid rgb(63, 63, 63);
+            color: rgb(255, 255, 255);
+            background-color: rgb(0, 255, 0);
+            }
+                            ''')
+
+            
 
     def clearHighlights(self):
         for row in self.boxes:
@@ -418,4 +465,5 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = App()
     sys.exit(app.exec_())
+
 

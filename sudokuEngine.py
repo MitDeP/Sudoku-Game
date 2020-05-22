@@ -230,6 +230,8 @@ class sudokuPuzzle():
                     cell['possible'] = possible
 
     def intelligentSolve(self):
+        guesses = 0
+        self.eventStack.clear()
         previousStates = []
         gStack = []
 
@@ -238,23 +240,37 @@ class sudokuPuzzle():
 
         while(not self.completed() and isPossible):
             while(progressMade):
-                progressMade = False
                 self.updatePossibles()
+                while(progressMade):
+                    progressMade = False
+                    for i in range(9):
+                        for j in range(9):
+                            if(self.board[i][j]['val'] == ' '):
+                                possibleExclusives = self.exclusiveRowSweep(j, i) & self.exclusiveColSweep(j, i) & self.exclusiveSectorSweep(j, i)
+                                if(len(possibleExclusives) == 1):
+                                    self.board[i][j]['val'] = possibleExclusives.pop()
+                                    self.eventStack.append(['exclusive',self.board[i][j]['val'], i, j])
+                                    self.board[i][j]['possible'].clear()
+                                    progressMade = True
+                                    self.updatePossibles()
 
-                for i in range(9):
-                    for j in range(9):
-                        if(self.board[i][j]['val'] == ' '):
-                            possibleExclusives = self.exclusiveRowSweep(j, i) & self.exclusiveColSweep(j, i) & self.exclusiveSectorSweep(j, i)
-                            if(len(possibleExclusives) == 1):
-                                self.board[i][j]['val'] = possibleExclusives.pop()
-                                self.eventStack.append(['exclusive',self.board[i][j]['val'], i, j])
-                                self.board[i][j]['possible'].clear()
-                                progressMade = True
+                                elif(len(self.board[i][j]['possible']) == 1):
+                                    self.board[i][j]['val'] = self.board[i][j]['possible'].pop()
+                                    self.eventStack.append(['exclusive',self.board[i][j]['val'], i, j])
+                                    self.board[i][j]['possible'].clear()
+                                    progressMade = True
+                                    self.updatePossibles()
+                            
+
                 
                 isPossible = self.possibleState()
+                if(guesses == 2000):
+                    return False
+
 
 
                 if(not self.completed()):
+                    guesses += 1
                     if(self.possibleState()):
                         info = self.findLeastDiverseUnsolvedCell()
                         buffer = copy.deepcopy(self.board)
@@ -275,11 +291,12 @@ class sudokuPuzzle():
                         x = previousGuess[1]
                         y = previousGuess[2]
                         self.eventStack.append(['bad guess', self.board[x][y]['val'], x, y])
-                        current = len(self.eventStack) - 1
+                        current = len(self.eventStack) - 2
+                        cop = self.eventStack[:]
                         while(self.eventStack[current][0] != 'guess'):
                             current -= 1
-                            wrongValue = self.eventStack[current]
-                            self.eventStack.append(['remove', wrongValue[1], wrongValue[2], wrongValue])
+                            wrongValue = cop[current]
+                            self.eventStack.append(['remove', wrongValue[1], wrongValue[2], wrongValue[3]])
                         self.board[x][y]['excluded'].add(value)
                         self.board[x][y]['possible'].discard(value)
                         isPossible = self.possibleState()
@@ -289,6 +306,8 @@ class sudokuPuzzle():
                         return False
                 else:
                     print(len(self.eventStack))
+                    for event in self.eventStack:
+                        print(event)
                     return True
 
     def createPuzzle(self, difficulty):
@@ -390,43 +409,3 @@ class sudokuPuzzle():
         return conflictions
 
     def _designPuzzle(self):
-        self.updatePossibles()
-
-        numsToPlace = random.randint(17, 20)
-
-
-        solvable = False
-        stableState = None
-
-        tempPuzzle = sudokuPuzzle()
-
-        while(not solvable):
-            numsPlaced = 0
-            tempPuzzle = sudokuPuzzle()
-            tempPuzzle.updatePossibles()
-            while(numsPlaced != numsToPlace and tempPuzzle.possibleState()):
-                x = random.randint(0, 8)
-                y = random.randint(0, 8)
-                possibleValues = list(tempPuzzle.board[x][y]['possible'])
-                if(len(possibleValues) > 0):
-                    stableState = copy.deepcopy(tempPuzzle.board)
-                    tempPuzzle.board[x][y]['val'] = possibleValues[random.randint(0, len(possibleValues)-1)]
-                    tempPuzzle.board[x][y]['possible'].clear()
-                    tempPuzzle.board[x][y]['type'] = 'given'
-                    if(tempPuzzle.possibleState()):
-                        numsPlaced += 1
-                    else:
-                        forbidden = tempPuzzle.board[x][y]['val']
-                        tempPuzzle.board = stableState
-                        tempPuzzle.board[x][y]['excluded'].add(forbidden)
-
-                tempPuzzle.updatePossibles()
-
-            solvable = tempPuzzle.possibleState() and tempPuzzle.intelligentSolve()
-
-        for i in range(9):
-            for j in range(9):
-                tempPuzzle.board[i][j]['excluded'].clear()
-
-
-        return tempPuzzle.board
