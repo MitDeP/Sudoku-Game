@@ -409,3 +409,43 @@ class sudokuPuzzle():
         return conflictions
 
     def _designPuzzle(self):
+        self.updatePossibles()
+
+        numsToPlace = random.randint(17, 20)
+
+
+        solvable = False
+        stableState = None
+
+        tempPuzzle = sudokuPuzzle()
+
+        while(not solvable):
+            numsPlaced = 0
+            tempPuzzle = sudokuPuzzle()
+            tempPuzzle.updatePossibles()
+            while(numsPlaced != numsToPlace and tempPuzzle.possibleState()):
+                x = random.randint(0, 8)
+                y = random.randint(0, 8)
+                possibleValues = list(tempPuzzle.board[x][y]['possible'])
+                if(len(possibleValues) > 0):
+                    stableState = copy.deepcopy(tempPuzzle.board)
+                    tempPuzzle.board[x][y]['val'] = possibleValues[random.randint(0, len(possibleValues)-1)]
+                    tempPuzzle.board[x][y]['possible'].clear()
+                    tempPuzzle.board[x][y]['type'] = 'given'
+                    if(tempPuzzle.possibleState()):
+                        numsPlaced += 1
+                    else:
+                        forbidden = tempPuzzle.board[x][y]['val']
+                        tempPuzzle.board = stableState
+                        tempPuzzle.board[x][y]['excluded'].add(forbidden)
+
+                tempPuzzle.updatePossibles()
+
+            solvable = tempPuzzle.possibleState() and tempPuzzle.intelligentSolve()
+
+        for i in range(9):
+            for j in range(9):
+                tempPuzzle.board[i][j]['excluded'].clear()
+
+
+        return tempPuzzle.board
