@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QDialog, QMainWindow, QTextEdit, QAction, QMenu, QMessageBox, QCheckBox, QLabel, QHBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QDialog, QMainWindow, QTextEdit, QAction, QMenu, QMessageBox, QCheckBox, QLabel, QHBoxLayout, QSlider, QVBoxLayout, QGroupBox, QGridLayout
 from PyQt5.QtGui import QIcon, QPainter, QFont, QPen
 from PyQt5.QtCore import pyqtSlot, Qt, QTimer
 
@@ -18,9 +18,23 @@ class optionsMenu(QWidget):
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
         #self.setWindowFlag(Qt.Window.CloseButtonHint, False)
+        self.passiveChecking = True
+        self.activeChecking = False
+        self.instantSolve = False
+        self.speed = 300
+        self.bufferValue = self.speed
         self.initUI()
 
     def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
+
+        self.createLayout()
+
+        windowLayout = QVBoxLayout()
+        windowLayout.addWidget(self.horizontalGroupBox)
+        self.setLayout(windowLayout)
+        """
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.passiveChecking = True
@@ -42,10 +56,74 @@ class optionsMenu(QWidget):
         self.saveChangesButton.move(75, 300)
         self.cancelButton.move(200, 300)
 
+        self.slider = QSlider(Qt.Horizontal)
+        #self.slider.setFocusPolicy(Qt.StrongFocus)
+        self.slider.setTickPosition(QSlider.TicksBothSides)
+        self.slider.setTickInterval(10)
+        self.slider.setSingleStep(1)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.passiveCheckingBox)
+        self.layout.addWidget(self.activeCheckingBox)
+        self.layout.addWidget(self.passiveCheckingBox)
+        self.layout.addWidget(self.saveChangesButton)
+        self.layout.addWidget(self.cancelButton)
+        self.layout.addWidget(self.slider)
+        groupbox.setLayout(self.layout)
+        """
 
-    def openMenu(self):
+
+    def createLayout(self):
+        self.horizontalGroupBox = QGroupBox("Options")
+        layout = QGridLayout()
+
+        self.saveButton = QPushButton('save', self)
+        self.saveButton.clicked.connect(self.saveClick)
+
+        self.cancelButton = QPushButton('cancel', self)
+        self.cancelButton.clicked.connect(self.exitClick)
+
+        self.slider = QSlider(Qt.Horizontal, self)
+        self.slider.setTickPosition(QSlider.TicksBothSides)
+        self.slider.setTickInterval(100)
+        self.slider.setMinimum(10)
+        self.slider.setMaximum(1010)
+        self.slider.valueChanged[int].connect(self.changeValue)
+        self.slider.setValue(self.speed)
+
+        self.passiveCheckingBox = QCheckBox('Check while solving', self)
+        self.activeCheckingBox = QCheckBox('Check at Submission Time', self)
+        self.instantSolveBox = QCheckBox('Solve Puzzle Instantly', self)
+
         self.passiveCheckingBox.setChecked(self.passiveChecking)
         self.activeCheckingBox.setChecked(self.activeChecking)
+        self.instantSolveBox.setChecked(self.instantSolve)
+        self.instantSolveBox.stateChanged.connect(self.enableSlider)
+
+        layout.addWidget(self.passiveCheckingBox, 0, 0)
+        layout.addWidget(self.activeCheckingBox, 1, 0)
+        layout.addWidget(self.instantSolveBox, 2, 0)
+        layout.addWidget(self.saveButton, 4, 0)
+        layout.addWidget(self.cancelButton, 4, 1)
+        layout.addWidget(self.slider, 3, 0)
+
+        self.horizontalGroupBox.setLayout(layout)
+
+    def changeValue(self, value):
+        self.bufferValue = value
+
+    def enableSlider(self):
+        if(self.instantSolve):
+            self.instantSolve = False
+            self.slider.setEnabled(True)
+        else:
+            self.instantSolve = True
+            self.slider.setEnabled(False)
+
+
+
+    def openMenu(self):
+        #self.passiveCheckingBox.setChecked(self.passiveChecking)
+        #self.activeCheckingBox.setChecked(self.activeClick)
         self.show()
 
 
@@ -63,6 +141,8 @@ class optionsMenu(QWidget):
         else:
             self.passiveChecking = False
             self.mainWindow.clearHighlights()
+        
+        self.speed = self.bufferValue
 
         self.close()
 
@@ -258,7 +338,8 @@ class App(QMainWindow):
         numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
         message = QMessageBox()
         message.setStandardButtons(QMessageBox.Ok)
-        message.buttonClicked.connect(self.clearHighlights)
+        if(self.optionsMenu.activeChecking and not self.optionsMenu.passiveChecking):
+            message.buttonClicked.connect(self.clearHighlights)
         finished = True
         for i in range(9):
             for j in range(9):
@@ -293,7 +374,7 @@ class App(QMainWindow):
                     box.setAlignment(Qt.AlignLeft)
 
     def openOptions(self):
-        print(self.optionsMenu.title)
+        #print(self.optionsMenu.title)
         self.optionsMenu.openMenu()
         self.setEnabled(False)
     
@@ -309,7 +390,7 @@ class App(QMainWindow):
             self.timer = QTimer(self)
             self.counter = 0
             self.timer.timeout.connect(self.onTimeout)
-            self.timer.start(300)
+            self.timer.start(self.optionsMenu.speed)
 
     def onTimeout(self):
         if(self.counter >= len(self.puzzle.eventStack)):
@@ -318,7 +399,6 @@ class App(QMainWindow):
             self.timer.stop()
         else:
             square = self.puzzle.eventStack[self.counter]
-            print(square)
             if(square[0] == 'remove' or square[0] == 'bad guess'):
                 self.boxes[square[2]][square[3]].setText(str(" "))
                 self.changeHighlights('red', square[2], square[3])
@@ -405,6 +485,7 @@ class App(QMainWindow):
 
     def highlight(self,wrong):
         for coords in wrong:
+            #print("wrong")
             cell = self.boxes[coords[0]][coords[1]]
             if(cell.isEnabled()):
                 cell.setStyleSheet('''

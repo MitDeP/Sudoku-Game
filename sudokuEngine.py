@@ -293,10 +293,11 @@ class sudokuPuzzle():
                         self.eventStack.append(['bad guess', self.board[x][y]['val'], x, y])
                         current = len(self.eventStack) - 2
                         cop = self.eventStack[:]
-                        while(self.eventStack[current][0] != 'guess'):
+                        while(self.eventStack[current][0] != 'guess' or self.eventStack[current][0] != 'bad guess'):
+                            if(cop[current][1] != ' ' and cop[current][0] != 'remove'):
+                                wrongValue = cop[current]
+                                self.eventStack.append(['remove', wrongValue[1], wrongValue[2], wrongValue[3]])
                             current -= 1
-                            wrongValue = cop[current]
-                            self.eventStack.append(['remove', wrongValue[1], wrongValue[2], wrongValue[3]])
                         self.board[x][y]['excluded'].add(value)
                         self.board[x][y]['possible'].discard(value)
                         isPossible = self.possibleState()
@@ -305,9 +306,9 @@ class sudokuPuzzle():
                     else:
                         return False
                 else:
-                    print(len(self.eventStack))
-                    for event in self.eventStack:
-                        print(event)
+                    #printprint(len(self.eventStack))
+                    #for event in self.eventStack:
+                        #print(event)
                     return True
 
     def createPuzzle(self, difficulty):
