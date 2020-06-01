@@ -380,7 +380,8 @@ class App(QMainWindow):
     
     def solveCurrentPuzzle(self):
         self.solving = True
-        self.puzzle.intelligentSolve()
+        x = self.puzzle.intelligentSolve()
+        print(x)
         if(self.optionsMenu.instantSolve):
             for i in range(9):
                 for j in range(9):

@@ -235,13 +235,119 @@ class sudokuPuzzle():
         previousStates = []
         gStack = []
 
+        guessTracker = 0
+
+        isPossible = True
+        progressMade = True
+
+        self.updatePossibles()
+        if(self.completed()):
+            print('I love burritos')
+        while(not self.completed() and isPossible):
+            while(progressMade):
+                progressMade = False
+                for i in range(9):
+                    for j in range(9):
+                        if(self.board[i][j]['val'] == ' '):
+                            possibleExclusives = self.exclusiveRowSweep(j, i) & self.exclusiveColSweep(j, i) & self.exclusiveSectorSweep(j, i)
+                            #find cells in rows, columns, or sectors that are the only ones with that possible value
+                            if(len(possibleExclusives) == 1):
+                                self.board[i][j]['val'] = possibleExclusives.pop()
+                                self.board[i][j]['possible'].clear() #no other values to be considered, we can be sure this is the right value
+                                progressMade = True
+                                self.eventStack.append(['exclusive', self.board[i][j]['val'], i, j])
+                                self.updatePossibles()
+
+                            elif(len(self.board[i][j]['possible']) == 1):
+                                self.board[i][j]['val'] = self.board[i][j]['possible'].pop()
+                                #find cells that have only one possible value, we can be sure they are correct
+                                self.board[i][j]['possible'].clear() #no other values to be considered
+                                progressMade = True
+                                self.eventStack.append(['exclusive', self.board[i][j]['val'], i, j])
+                                self.updatePossibles()
+            
+            
+            #if we are out here, we have made no progress trying to find exclusive values
+            isPossible = self.possibleState()
+            #check to see if any cells have no possible values that could work in them
+            #if that is so, then we know the puzzle is in an impossible state
+
+            if(guesses >= 2000):
+                #probably accidentally created an invalid puzzle
+                #rather than exhaust it, just quit to save time
+                return False
+
+
+            if(not self.completed()):
+                #still have work to do
+                if(self.possibleState()):
+                    #if we can move forward and things are still possible
+                    info = self.findLeastDiverseUnsolvedCell()
+                    buffer = copy.deepcopy(self.board)
+                    #save the puzzle as we left it so we can come back to it if need be
+                    previousStates.append(buffer)
+                    x = info[0]
+                    y = info[1]
+                    guess = self.board[x][y]['possible'].pop()
+                    #take first value from a cell's possible values
+                    #assume that possible value, and try to move on by guessing
+                    guesses += 1
+                    guessTracker += 1
+                    self.board[x][y]['val'] = guess
+                    gStack.append([guess, x, y])
+                    self.updatePossibles()
+                    #remember which cell we guessed in and the value of it for later in case it was incorrect
+                    progressMade = True
+                    #we can go back to trying to find exclusive values
+                    self.eventStack.append(['guess', guess, x, y])
+
+
+                elif(len(gStack) > 0):
+                    #the state the board is in leave a cell with no possible values that could fit
+                    #if we are here, we know a guess we made was incorrect, and needs to be undone
+                    self.board = previousStates.pop()
+                    guessTracker -= 1
+                    if(guessTracker < 0):
+                        print("Huston, we have a problem")
+                    #undo last guess by loading the board before we set that value
+                    previousGuess = gStack.pop()
+                    value = previousGuess[0]
+                    x = previousGuess[1]
+                    y = previousGuess[2]
+                    self.board[x][y]['excluded'].add(value)
+                    self.board[x][y]['possible'].discard(value)
+                    #we know that value cannot work in that cell
+                    #we tell the board to no longer consider that value
+                    isPossible = self.possibleState()
+                    self.updatePossibles()
+                    progressMade = True
+                    self.eventStack.append(['bad guess', self.board[x][y]['val'], x, y])
+
+                else:
+                    #if we are here, there is nothing else we can do
+                    #the board is currently in an impossible state, but we have no guesses to fall back on
+                    #at this point, it is likely the puzzle is actually impossible to solve
+                    return False
+            else:
+                #if we are here, the puzzle is complete, and we are done.
+                print(guessTracker)
+                self._interpretMoves()
+                return True
+
+    """
+    def intelligentSolve(self):
+        guesses = 0
+        self.eventStack.clear()
+        previousStates = []
+        gStack = []
+
         isPossible = True
         progressMade = True
 
         while(not self.completed() and isPossible):
             while(progressMade):
                 self.updatePossibles()
-                while(progressMade):
+                while(progressMade): 
                     progressMade = False
                     for i in range(9):
                         for j in range(9):
@@ -277,6 +383,8 @@ class sudokuPuzzle():
                         previousStates.append(buffer)
                         x = info[0]
                         y = info[1]
+                        if(len(self.board[x][y]['possible']) == 1):
+                            print("actually, this is exclusive")
                         guess = self.board[x][y]['possible'].pop()
                         self.board[x][y]['val'] = guess
                         gStack.append([guess, x, y])
@@ -291,13 +399,6 @@ class sudokuPuzzle():
                         x = previousGuess[1]
                         y = previousGuess[2]
                         self.eventStack.append(['bad guess', self.board[x][y]['val'], x, y])
-                        current = len(self.eventStack) - 2
-                        cop = self.eventStack[:]
-                        while(self.eventStack[current][0] != 'guess' or self.eventStack[current][0] != 'bad guess'):
-                            if(cop[current][1] != ' ' and cop[current][0] != 'remove'):
-                                wrongValue = cop[current]
-                                self.eventStack.append(['remove', wrongValue[1], wrongValue[2], wrongValue[3]])
-                            current -= 1
                         self.board[x][y]['excluded'].add(value)
                         self.board[x][y]['possible'].discard(value)
                         isPossible = self.possibleState()
@@ -309,7 +410,10 @@ class sudokuPuzzle():
                     #printprint(len(self.eventStack))
                     #for event in self.eventStack:
                         #print(event)
+                    self._interpretMoves()
                     return True
+
+    """
 
     def createPuzzle(self, difficulty):
         numsToRemove = 0
@@ -450,3 +554,43 @@ class sudokuPuzzle():
 
 
         return tempPuzzle.board
+
+    def _interpretMoves(self):
+        final = []
+        counter = 0
+        stack = []
+        while(counter != len(self.eventStack)):
+            final.append(self.eventStack[counter])
+            if(self.eventStack[counter][0] == 'guess'):
+                stack.append(counter)
+            elif(self.eventStack[counter][0] == 'bad guess'):
+                index = stack.pop()
+
+                cop = self.eventStack[index:]
+                nxt = 1
+                while(cop[nxt][0] == 'exclusive'):
+                    final.append(['remove', cop[nxt][1], cop[nxt][2], cop[nxt][3]])
+                    nxt += 1
+            elif(self.eventStack[counter][0] != 'exclusive'):
+                print("barbaric")
+                print(self.eventStack[counter][0])
+            counter += 1
+
+        self.eventStack = final
+
+
+    def __generateString(self):
+        buffer = ""
+        for elem in self.eventStack:
+            if(elem[0] == 'guess'):
+                buffer += 'G'
+            elif(elem[0] == 'exclusive'):
+                buffer += 'E'
+            elif(elem[0] == 'bad guess'):
+                buffer += 'B'
+            elif(elem[0] == 'remove'):
+                buffer += 'R'
+            else:
+                buffer += '?'
+
+        print(buffer)
